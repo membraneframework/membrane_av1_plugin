@@ -359,6 +359,16 @@ EbErrorType get_encoded_frames(
 UNIFEX_TERM encode_frame(
     UnifexEnv *env, raw_frame raw_frame, int force_keyframe, UnifexState *state
 ) {
+  // The frame is read with offsets derived from width and height, so a shorter
+  // payload would be read out of bounds.
+  size_t expected_size = (size_t)raw_frame.width * raw_frame.height +
+                         2 * ((raw_frame.width + 1) / 2) * ((raw_frame.height + 1) / 2);
+  if (raw_frame.payload->size < expected_size) {
+    return result_error(
+        env, "Invalid frame size", EB_ErrorBadParameter, encode_frame_result_error, NULL
+    );
+  }
+
   EbPrivDataNode *priv_data_head = build_priv_data(raw_frame, &force_keyframe, state);
 
   EbSvtIOFormat image = get_image_from_raw_frame(raw_frame);
