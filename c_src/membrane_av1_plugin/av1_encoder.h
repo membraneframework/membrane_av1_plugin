@@ -12,6 +12,8 @@ struct State {
   EbComponentType *handle;
   unsigned int height;
   unsigned int width;
+  unsigned int initial_height;
+  unsigned int initial_width;
   framerate framerate;
   PredStructure pred_structure;
 };

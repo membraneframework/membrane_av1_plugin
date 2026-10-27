@@ -50,4 +50,21 @@ defmodule Membrane.AV1.EncoderTest do
 
     Testing.Pipeline.terminate(pid)
   end
+
+  test "encode_frame rejects frames larger than the initial resolution" do
+    alias Membrane.AV1.Encoder.{Framerate, Native, RawFrame}
+
+    framerate = %Framerate{numerator: 30, denominator: 1}
+    assert {:ok, ref} = Native.create(320, 240, framerate, :low_delay, [])
+
+    frame = %RawFrame{
+      payload: :binary.copy(<<0>>, 640 * 480 * 3 |> div(2)),
+      pts: 0,
+      width: 640,
+      height: 480,
+      framerate: framerate
+    }
+
+    assert {:error, _reason} = Native.encode_frame(frame, false, ref)
+  end
 end

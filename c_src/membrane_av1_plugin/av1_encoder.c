@@ -170,6 +170,8 @@ UNIFEX_TERM create(
 
   state->width = width;
   state->height = height;
+  state->initial_width = width;
+  state->initial_height = height;
   state->framerate.numerator = framerate.numerator;
   state->framerate.denominator = framerate.denominator;
   state->pred_structure = (PredStructure)prediction_structure;
@@ -359,6 +361,14 @@ EbErrorType get_encoded_frames(
 UNIFEX_TERM encode_frame(
     UnifexEnv *env, raw_frame raw_frame, int force_keyframe, UnifexState *state
 ) {
+  // The encoder's input buffers are sized for the initial resolution.
+  if (raw_frame.width == 0 || raw_frame.height == 0 ||
+      raw_frame.width > state->initial_width || raw_frame.height > state->initial_height) {
+    return result_error(
+        env, "Invalid frame resolution", EB_ErrorBadParameter, encode_frame_result_error, NULL
+    );
+  }
+
   EbPrivDataNode *priv_data_head = build_priv_data(raw_frame, &force_keyframe, state);
 
   EbSvtIOFormat image = get_image_from_raw_frame(raw_frame);
