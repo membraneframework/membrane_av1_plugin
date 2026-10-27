@@ -84,7 +84,9 @@ UNIFEX_TERM create(UnifexEnv *env, unsigned int n_threads, unsigned int max_fram
     return result_error(env, "Error initializing decoder", result, create_result_error, state);
   }
 
-  return create_result_ok(env, state);
+  UNIFEX_TERM unifex_result = create_result_ok(env, state);
+  unifex_release_state(env, state);
+  return unifex_result;
 }
 
 void get_payload_from_picture(UnifexEnv *env, Dav1dPicture picture, UnifexPayload *payload) {
@@ -233,7 +235,7 @@ UNIFEX_TERM decode_frame(UnifexEnv *env, encoded_frame encoded_frame, UnifexStat
     unifex_result = decode_frame_result_ok(env, decoded_frames.data, decoded_frames.length);
   } else {
     unifex_result =
-        result_error(env, "Error decoding frame", result, decode_frame_result_error, state);
+        result_error(env, "Error decoding frame", result, decode_frame_result_error, NULL);
   }
   vector_free(&decoded_frames);
   return unifex_result;
@@ -248,7 +250,7 @@ UNIFEX_TERM flush(UnifexEnv *env, UnifexState *state) {
     unifex_result = flush_result_ok(env, decoded_frames.data, decoded_frames.length);
   } else {
     unifex_result =
-        result_error(env, "Error flushing the decoder", result, flush_result_error, state);
+        result_error(env, "Error flushing the decoder", result, flush_result_error, NULL);
   }
   vector_free(&decoded_frames);
   return unifex_result;

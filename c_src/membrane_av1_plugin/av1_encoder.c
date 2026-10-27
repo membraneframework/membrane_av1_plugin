@@ -204,7 +204,9 @@ UNIFEX_TERM create(
     return result_error(env, "Error initializing encoder", error_type, create_result_error, state);
   }
 
-  return create_result_ok(env, state);
+  UNIFEX_TERM unifex_result = create_result_ok(env, state);
+  unifex_release_state(env, state);
+  return unifex_result;
 }
 
 void append_priv_data_node(
@@ -379,7 +381,7 @@ UNIFEX_TERM encode_frame(
 
   if (error_type) {
     return result_error(
-        env, "Error sending image to the encoder", error_type, encode_frame_result_error, state
+        env, "Error sending image to the encoder", error_type, encode_frame_result_error, NULL
     );
   }
   encoded_frame_vector encoded_frame_vector = vector_init();
@@ -391,7 +393,7 @@ UNIFEX_TERM encode_frame(
         encode_frame_result_ok(env, encoded_frame_vector.data, encoded_frame_vector.length);
   } else {
     unifex_result = result_error(
-        env, "Error getting encoded frames", error_type, encode_frame_result_error, state
+        env, "Error getting encoded frames", error_type, encode_frame_result_error, NULL
     );
   }
   vector_free(&encoded_frame_vector);
@@ -409,7 +411,7 @@ UNIFEX_TERM flush(UnifexEnv *env, UnifexState *state) {
 
   if (error_type) {
     return result_error(
-        env, "Error sending EOS sentinel to the encoder", error_type, flush_result_error, state
+        env, "Error sending EOS sentinel to the encoder", error_type, flush_result_error, NULL
     );
   }
   encoded_frame_vector encoded_frame_vector = vector_init();
@@ -420,7 +422,7 @@ UNIFEX_TERM flush(UnifexEnv *env, UnifexState *state) {
     unifex_result = flush_result_ok(env, encoded_frame_vector.data, encoded_frame_vector.length);
   } else {
     unifex_result =
-        result_error(env, "Error flushing the encoder", error_type, flush_result_error, state);
+        result_error(env, "Error flushing the encoder", error_type, flush_result_error, NULL);
   }
   vector_free(&encoded_frame_vector);
   return unifex_result;

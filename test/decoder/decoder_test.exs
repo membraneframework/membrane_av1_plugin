@@ -44,4 +44,20 @@ defmodule Membrane.AV1.DecoderTest do
 
     Testing.Pipeline.terminate(pid)
   end
+
+  test "decoder state survives a decode error" do
+    alias Membrane.AV1.Decoder.{EncodedFrame, Framerate, Native}
+
+    assert {:ok, ref} = Native.create(0, 0)
+
+    frame = %EncodedFrame{
+      payload: <<0xFF, 0xFF, 0xFF, 0xFF>>,
+      pts: 0,
+      framerate: %Framerate{numerator: 30, denominator: 1}
+    }
+
+    assert {:error, _reason} = Native.decode_frame(frame, ref)
+    :erlang.garbage_collect()
+    assert {:ok, []} = Native.flush(ref)
+  end
 end
