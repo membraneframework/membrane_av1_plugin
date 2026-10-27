@@ -197,7 +197,8 @@ int decode_data(
   case DAV1D_ERR(EAGAIN):
     result = get_decoded_frames(env, decoded_frames, state);
     if (result == DAV1D_ERR(EAGAIN)) return decode_data(env, data, decoded_frames, state);
-    else return result;
+    dav1d_data_unref(&data);
+    return result;
   case 0:
     return get_decoded_frames(env, decoded_frames, state);
   default:
@@ -211,22 +212,29 @@ void free_framerate_callback(const uint8_t *framerate_data, void *cookie) {
   unifex_free((void *)framerate_data);
 }
 
-Dav1dData create_data(encoded_frame encoded_frame) {
-  Dav1dData data = {
-      .data = encoded_frame.payload->data,
-      .sz = encoded_frame.payload->size,
-      .m = {.timestamp = encoded_frame.pts}
-  };
+// dav1d keeps a reference to the data and reads it from its worker threads
+// after dav1d_send_data returns, so it must not point into the Elixir binary.
+int create_data(encoded_frame encoded_frame, Dav1dData *data) {
+  uint8_t *buf = dav1d_data_create(data, encoded_frame.payload->size);
+  if (!buf) return DAV1D_ERR(ENOMEM);
+  memcpy(buf, encoded_frame.payload->data, encoded_frame.payload->size);
+  data->m.timestamp = encoded_frame.pts;
+
   framerate *fr = unifex_alloc(sizeof(framerate));
   *fr = encoded_frame.framerate;
-  dav1d_data_wrap_user_data(&data, (const uint8_t *)fr, free_framerate_callback, NULL);
-  return data;
+  dav1d_data_wrap_user_data(data, (const uint8_t *)fr, free_framerate_callback, NULL);
+  return 0;
 }
 
 UNIFEX_TERM decode_frame(UnifexEnv *env, encoded_frame encoded_frame, UnifexState *state) {
+  if (encoded_frame.payload->size == 0) {
+    return decode_frame_result_ok(env, NULL, 0);
+  }
+
   raw_frame_vector decoded_frames = vector_init();
-  Dav1dData data = create_data(encoded_frame);
-  int result = decode_data(env, data, &decoded_frames, state);
+  Dav1dData data;
+  int result = create_data(encoded_frame, &data);
+  if (result == 0) result = decode_data(env, data, &decoded_frames, state);
 
   UNIFEX_TERM unifex_result;
   if (result == DAV1D_ERR(EAGAIN)) {

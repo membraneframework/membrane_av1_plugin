@@ -44,4 +44,18 @@ defmodule Membrane.AV1.DecoderTest do
 
     Testing.Pipeline.terminate(pid)
   end
+
+  test "an empty payload decodes to no frames" do
+    alias Membrane.AV1.Decoder.{EncodedFrame, Framerate, Native}
+
+    assert {:ok, ref} = Native.create(0, 0)
+
+    frame = %EncodedFrame{
+      payload: <<>>,
+      pts: 0,
+      framerate: %Framerate{numerator: 30, denominator: 1}
+    }
+
+    assert {:ok, []} = Native.decode_frame(frame, ref)
+  end
 end
